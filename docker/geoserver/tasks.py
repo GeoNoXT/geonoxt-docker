@@ -83,22 +83,22 @@ def _configure_geoserver_password():
 def _initialized(ctx):
     print("**************************init file********************************")
     GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
-    TIMEZONE = os.getenv("TIMEZONE", "UTC")
+    TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
     geoserver_init_lock = Path(GEOSERVER_DATA_DIR) / "geoserver_init.lock"
     # ctx.run(f"date > {geoserver_init_lock}")
 
     # Verifica si la zona horaria es válida usando pytz
     try:
         # Intentar obtener la zona horaria
-        pytz.timezone(TIMEZONE)
-        print(f"Zona horaria válida: {TIMEZONE}")
+        pytz.timezone(TIME_ZONE)
+        print(f"Zona horaria válida: {TIME_ZONE}")
     except pytz.UnknownTimeZoneError:
         # Si la zona horaria no es válida, caerá en UTC
-        print(f"Zona horaria no válida: {TIMEZONE}. Usando UTC por defecto.")
-        TIMEZONE = "UTC"
+        print(f"Zona horaria no válida: {TIME_ZONE}. Usando UTC por defecto.")
+        TIME_ZONE = "UTC"
 
     # Ejecuta el comando con la zona horaria validada
     try:
-        ctx.run(f"TZ={TIMEZONE} date > {geoserver_init_lock}")
+        ctx.run(f"TZ={TIME_ZONE} date > {geoserver_init_lock}")
     except CalledProcessError as e:
         print(f"Error al ejecutar el comando: {e}")
