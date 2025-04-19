@@ -56,7 +56,7 @@ do
         authApiKey)
             echo "DEBUG: Editing '$auth_conf_source' for tagname <$i> and replacing its value with '$OAUTH2_API_KEY'"
             newvalue=`echo -ne "$tagvalue" | sed -re "s@.*@$OAUTH2_API_KEY@"`;;
-        cliendId)
+        clientId)
             echo "DEBUG: Editing '$auth_conf_source' for tagname <$i> and replacing its value with '$OAUTH2_CLIENT_ID'"
             newvalue=`echo -ne "$tagvalue" | sed -re "s@.*@$OAUTH2_CLIENT_ID@"`;;
         clientSecret)

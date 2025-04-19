@@ -21,7 +21,7 @@ ENV GEOSERVER_CORS_ALLOWED_HEADERS=$GEOSERVER_CORS_ALLOWED_HEADERS
 #
 # Download and install GeoServer
 #
-RUN apt-get update -y && apt-get install curl wget unzip -y
+RUN apt-get update -y && apt-get install curl wget unzip apt-utils -y
 RUN cd /usr/local/tomcat/webapps \
     && wget --no-check-certificate --progress=bar:force:noscroll https://artifacts.geonode.org/geoserver/${GEOSERVER_VERSION}/geoserver.war -O geoserver.war \
     && unzip -q geoserver.war -d geoserver \
