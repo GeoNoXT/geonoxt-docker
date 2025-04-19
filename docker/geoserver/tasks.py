@@ -44,7 +44,9 @@ def _configure_geoserver_password():
     GEOSERVER_ADMIN_USER = os.getenv("GEOSERVER_ADMIN_USER", "admin")
     GEOSERVER_ADMIN_PASSWORD = os.getenv("GEOSERVER_ADMIN_PASSWORD", "geoserver")
     GEOSERVER_FACTORY_PASSWORD = os.getenv("GEOSERVER_FACTORY_PASSWORD", "geoserver")
-    geoserver_rest_baseurl = f"http://localhost:{GEOSERVER_LB_PORT}/geoserver/rest"
+    GEOSERVER_LB_HOST_IP = os.getenv("GEOSERVER_LB_HOST_IP", "localhost")
+    GEOSERVER_HTTP_PROTOCOL = os.getenv("GEOSERVER_HTTP_PROTOCOL", "http")
+    geoserver_rest_baseurl = f"{GEOSERVER_HTTP_PROTOCOL}://{GEOSERVER_LB_HOST_IP}:{GEOSERVER_LB_PORT}/geoserver/rest"
     basic_auth_credentials = base64.b64encode(
         f"{GEOSERVER_ADMIN_USER}:{GEOSERVER_FACTORY_PASSWORD}".encode()
     ).decode()
