@@ -25,10 +25,9 @@ RUN apt-get update -y && apt-get install curl wget unzip apt-utils -y
 RUN cd /usr/local/tomcat/webapps \
     && wget --no-check-certificate --progress=bar:force:noscroll https://artifacts.geonode.org/geoserver/${GEOSERVER_VERSION}/geoserver.war -O geoserver.war \
     && unzip -q geoserver.war -d geoserver \
-    && rm geoserver.war \
-    && mkdir -p $GEOSERVER_DATA_DIR
+    && rm geoserver.war
 
-VOLUME $GEOSERVER_DATA_DIR
+# VOLUME $GEOSERVER_DATA_DIR
 
 # no longer used since 2.24.2
 #ENV GEOSERVER_LIB_DIR="/usr/local/tomcat/webapps/geoserver/WEB-INF/lib"
