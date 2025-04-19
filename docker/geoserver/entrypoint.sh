@@ -15,6 +15,26 @@ invoke () {
     echo "$@ tasks done"
 }
 
+if [ -n "$GEONODE_HTTP_PROTOCOL" ];
+then
+    echo "GEONODE_HTTP_PROTOCOL is defined and not empty with the value '$GEONODE_HTTP_PROTOCOL' "
+    echo export GEONODE_HTTP_PROTOCOL=${GEONODE_HTTP_PROTOCOL} >> /root/.override_env
+else
+    echo "GEONODE_HTTP_PROTOCOL is either not defined or empty setting the value to 'http' "
+    echo export GEONODE_HTTP_PROTOCOL=http >> /root/.override_env
+    export GEONODE_HTTP_PROTOCOL=http
+fi
+
+if [ -n "$GEOSERVER_HTTP_PROTOCOL" ];
+then
+    echo "GEOSERVER_HTTP_PROTOCOL is defined and not empty with the value '$GEOSERVER_HTTP_PROTOCOL' "
+    echo export GEOSERVER_HTTP_PROTOCOL=${GEOSERVER_HTTP_PROTOCOL} >> /root/.override_env
+else
+    echo "GEOSERVER_HTTP_PROTOCOL is either not defined or empty setting the value to 'http' "
+    echo export GEOSERVER_HTTP_PROTOCOL=http >> /root/.override_env
+    export GEOSERVER_HTTP_PROTOCOL=http
+fi
+
 # control the values of LB settings if present
 if [ -n "$GEONODE_LB_HOST_IP" ];
 then
@@ -140,6 +160,17 @@ else
     echo export GEOSERVER_LOCATION=${NGINX_BASE_URL} >> /root/.override_env
 fi
 
+if [ -n "$GEONODE_LOCATION" ];
+then
+    echo "GEONODE_LOCATION is defined and not empty with the value '$GEONODE_LOCATION'"
+    echo "Setting GEONODE_LOCATION='${GEONODE_LOCATION}' "
+    echo export GEONODE_LOCATION=${GEONODE_LOCATION} >> /root/.override_env
+else
+    echo "GEONODE_LOCATION is either not defined or empty so I'll use the default GeoNode location "
+    echo "Setting GEONODE_LOCATION='${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT}' "
+    echo export GEONODE_LOCATION=${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT} >> /root/.override_env
+fi
+
 if [ -n "$SUBSTITUTION_URL" ];
 then
     echo "SUBSTITUTION_URL is defined and not empty with the value '$SUBSTITUTION_URL'"
@@ -147,8 +178,8 @@ then
     echo export GEONODE_LOCATION=${SUBSTITUTION_URL} >> /root/.override_env
 else
     echo "SUBSTITUTION_URL is either not defined or empty so I'll use the default GeoNode location "
-    echo "Setting GEONODE_LOCATION='http://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT}' "
-    echo export GEONODE_LOCATION=http://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT} >> /root/.override_env
+    echo "Setting GEONODE_LOCATION='${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT}' "
+    echo export GEONODE_LOCATION=${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT} >> /root/.override_env
 fi
 
 # set basic tagname
@@ -170,7 +201,7 @@ cp "${GEOSERVER_DATA_DIR}/security/role/geonode REST role service/config.xml" "$
 /usr/local/tomcat/tmp/set_geoserver_auth.sh "${GEOSERVER_DATA_DIR}/security/role/geonode REST role service/config.xml" "${GEOSERVER_DATA_DIR}/security/role/geonode REST role service/" ${TAGNAME[@]} > /dev/null 2>&1
 
 # set oauth2 filter tagname
-TAGNAME=( "cliendId" "clientSecret" "accessTokenUri" "userAuthorizationUri" "redirectUri" "checkTokenEndpointUrl" "logoutUri" )
+TAGNAME=( "clientId" "clientSecret" "accessTokenUri" "userAuthorizationUri" "redirectUri" "checkTokenEndpointUrl" "logoutUri" )
 
 # backup geonode-oauth2 config.xml
 cp ${GEOSERVER_DATA_DIR}/security/filter/geonode-oauth2/config.xml ${GEOSERVER_DATA_DIR}/security/filter/geonode-oauth2/config.xml.orig
@@ -243,6 +274,7 @@ fi
 if [ ${FORCE_REINIT} = "true" ]  || [ ${FORCE_REINIT} = "True" ] || [ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]; then
     # Run async configuration, it needs Geoserver to be up and running
     # executes step configure-geoserver from task.py file
+    echo "Running invoke configure-geoserver"
     nohup sh -c "invoke configure-geoserver" &
 fi
 
