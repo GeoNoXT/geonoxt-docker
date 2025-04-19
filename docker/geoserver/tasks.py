@@ -24,6 +24,8 @@ import base64
 import requests
 from pathlib import Path
 from invoke import task
+import pytz
+from subprocess import run, CalledProcessError
 
 logger = logging.getLogger(__name__)
 
@@ -79,5 +81,22 @@ def _configure_geoserver_password():
 def _initialized(ctx):
     print("**************************init file********************************")
     GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
+    TIMEZONE = os.getenv("TIMEZONE", "UTC")
     geoserver_init_lock = Path(GEOSERVER_DATA_DIR) / "geoserver_init.lock"
-    ctx.run(f"date > {geoserver_init_lock}")
+    # ctx.run(f"date > {geoserver_init_lock}")
+
+    # Verifica si la zona horaria es válida usando pytz
+    try:
+        # Intentar obtener la zona horaria
+        pytz.timezone(TIMEZONE)
+        print(f"Zona horaria válida: {TIMEZONE}")
+    except pytz.UnknownTimeZoneError:
+        # Si la zona horaria no es válida, caerá en UTC
+        print(f"Zona horaria no válida: {TIMEZONE}. Usando UTC por defecto.")
+        timezone = "UTC"
+
+    # Ejecuta el comando con la zona horaria validada
+    try:
+        ctx.run(f"TZ={TIMEZONE} date > {os.getenv('GEOSERVER_DATA_DIR', '/geoserver_data/data/')}/geoserver_init.lock")
+    except CalledProcessError as e:
+        print(f"Error al ejecutar el comando: {e}")
