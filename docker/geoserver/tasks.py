@@ -93,10 +93,10 @@ def _initialized(ctx):
     except pytz.UnknownTimeZoneError:
         # Si la zona horaria no es válida, caerá en UTC
         print(f"Zona horaria no válida: {TIMEZONE}. Usando UTC por defecto.")
-        timezone = "UTC"
+        TIMEZONE = "UTC"
 
     # Ejecuta el comando con la zona horaria validada
     try:
-        ctx.run(f"TZ={TIMEZONE} date > {os.getenv('GEOSERVER_DATA_DIR', '/geoserver_data/data/')}/geoserver_init.lock")
+        ctx.run(f"TZ={TIMEZONE} date > {geoserver_init_lock}")
     except CalledProcessError as e:
         print(f"Error al ejecutar el comando: {e}")
