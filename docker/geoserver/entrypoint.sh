@@ -171,17 +171,6 @@ else
     echo export GEONODE_LOCATION=${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT} >> /root/.override_env
 fi
 
-if [ -n "$SUBSTITUTION_URL" ];
-then
-    echo "SUBSTITUTION_URL is defined and not empty with the value '$SUBSTITUTION_URL'"
-    echo "Setting GEONODE_LOCATION='${SUBSTITUTION_URL}' "
-    echo export GEONODE_LOCATION=${SUBSTITUTION_URL} >> /root/.override_env
-else
-    echo "SUBSTITUTION_URL is either not defined or empty so I'll use the default GeoNode location "
-    echo "Setting GEONODE_LOCATION='${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT}' "
-    echo export GEONODE_LOCATION=${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT} >> /root/.override_env
-fi
-
 # set basic tagname
 TAGNAME=( "baseUrl" "authApiKey" )
 
