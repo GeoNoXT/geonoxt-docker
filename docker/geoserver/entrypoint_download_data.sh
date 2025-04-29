@@ -19,8 +19,8 @@ invoke () {
 # Verificar si se debe forzar la reinicialización o si no existe el archivo de bloqueo
 if [ "${FORCE_REINIT}" = "true" ] || [ "${FORCE_REINIT}" = "True" ] || [ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]; then
     echo "Forzando reinicialización o no se encontró geoserver_init.lock."
-    echo "Ejecutando invoke download-data"
-    nohup sh -c "invoke download-data"
+    echo "Ejecutando invoke download_data"
+    nohup sh -c "invoke download_data"
 else
     echo "Los datos ya están inicializados y geoserver_init.lock está presente."
 fi
