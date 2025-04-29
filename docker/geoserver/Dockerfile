@@ -3,12 +3,15 @@ ARG JAVA_HOME=/usr/local/openjdk-11
 FROM tomcat:$IMAGE_VERSION
 LABEL GeoNoXTeam="GeoNoXT development team"
 
+
 ARG GEOSERVER_VERSION=2.24.x
 ARG GEOSERVER_DATA_DIR="/geoserver_data/data"
 ARG GEOSERVER_CORS_ENABLED=False
 ARG GEOSERVER_CORS_ALLOWED_ORIGINS=*
 ARG GEOSERVER_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
 ARG GEOSERVER_CORS_ALLOWED_HEADERS=*
+ARG TEMP_DOWNLOAD_DATA="/tmp/geonode/download_data"
+
 #
 # Set GeoServer version and data directory
 #
@@ -18,6 +21,8 @@ ENV GEOSERVER_CORS_ENABLED=$GEOSERVER_CORS_ENABLED
 ENV GEOSERVER_CORS_ALLOWED_ORIGINS=$GEOSERVER_CORS_ALLOWED_ORIGINS
 ENV GEOSERVER_CORS_ALLOWED_METHODS=$GEOSERVER_CORS_ALLOWED_METHODS
 ENV GEOSERVER_CORS_ALLOWED_HEADERS=$GEOSERVER_CORS_ALLOWED_HEADERS
+ENV TEMP_DOWNLOAD_DATA=${TEMP_DOWNLOAD_DATA}
+
 #
 # Download and install GeoServer
 #
@@ -27,15 +32,6 @@ RUN cd /usr/local/tomcat/webapps \
     && unzip -q geoserver.war -d geoserver \
     && rm geoserver.war
 
-# no longer used since 2.24.2
-#ENV GEOSERVER_LIB_DIR="/usr/local/tomcat/webapps/geoserver/WEB-INF/lib"
-#RUN wget --no-check-certificate https://repo1.maven.org/maven2/org/postgis/postgis-jdbc/1.3.3/postgis-jdbc-1.3.3.jar -O postgis-jdbc-1.3.3.jar && \
-#    wget --no-check-certificate https://maven.geo-solutions.it/org/hibernatespatial/hibernate-spatial-postgis/1.1.3.2/hibernate-spatial-postgis-1.1.3.2.jar -O hibernate-spatial-postgis-1.1.3.2.jar && \
-#    rm $GEOSERVER_LIB_DIR/hibernate-spatial-h2-geodb-1.1.3.2.jar && \
-#    mv hibernate-spatial-postgis-1.1.3.2.jar $GEOSERVER_LIB_DIR && \
-#    mv postgis-jdbc-1.3.3.jar $GEOSERVER_LIB_DIR
-
-
 # copy the script and perform the run of scripts from entrypoint.sh
 RUN mkdir -p /usr/local/tomcat/tmp
 WORKDIR /usr/local/tomcat/tmp
@@ -44,12 +40,14 @@ COPY set_geoserver_auth.sh \
      tasks.py \
      multidump.sh \
      multidump-alt.sh \
+     entrypoint_download_data.sh \
      /usr/local/tomcat/tmp/
 
 COPY ./templates /templates
 
 RUN chmod +x \
         /usr/local/tomcat/tmp/set_geoserver_auth.sh \
+        /usr/local/tomcat/tmp/entrypoint_download_data.sh \
         /usr/local/tomcat/tmp/entrypoint.sh
 
 RUN apt-get install -y procps less && \
@@ -57,21 +55,6 @@ RUN apt-get install -y procps less && \
 
 RUN pip install j2cli invoke==2.2.0 requests==2.31.0 pytz
 
-# ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -XX:MaxPermSize=512m -XX:PermSize=256m -Xms512m -Xmx2048m -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=http://geoserver:8080/geoserver/pdf -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine"
-# ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -Xms512m -Xmx2048m -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=http://geoserver:8080/geoserver/pdf -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine"
-# ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -Xms512m -Xmx2048m -XX:SoftRefLRUPolicyMSPerMB=36000 -XX:-UseGCOverheadLimit -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=https://geonoxt-geoserver-2-1016990259637.us-central1.run.app/geoserver/pdf -DALLOW_ENV_PARAMETRIZATION=true -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine -Xverify:none -Dorg.apache.catalina.startup.EXIT_ON_INIT_FAILURE=true -Dgeoserver.logging.profile=info -Dsun.reflect.debugModuleAccessChecks=false"
-
-# ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -Xms512m -Xmx2048m -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=https://geonoxt-geoserver-2-1016990259637.us-central1.run.app/geoserver/pdf -DALLOW_ENV_PARAMETRIZATION=true -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine -Xverify:none -Dorg.apache.catalina.startup.EXIT_ON_INIT_FAILURE=true -Dgeoserver.logging.profile=info -Dsun.reflect.debugModuleAccessChecks=false"
-ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -Xms512m -Xmx2048m -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=https://geonoxt-geoserver-2-1016990259637.us-central1.run.app/geoserver/pdf -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine"
-
-
-# -XX:MaxPermSize=512m -XX:PermSize=256m fueron removidos en la versión 8 de java
-# -XX:+UseConcMarkSweepGC  No está disponible en todas las versiones de Java: CMS fue descontinuado en Java 9 y reemplazado por el recolector G1GC (Garbage First Garbage Collector) como el recolector de basura por defecto. Si usas Java 9 o versiones posteriores, CMS ya no es una opción y, en su lugar, deberías considerar el uso de G1GC.
-# -XX:PerfDataSamplingInterval=500 es para el monitoreo de rendimiento y no son necesarios en producción
-
-
 ENV JAVA_OPTS="-Djava.awt.headless=true -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -Xms512m -Xmx2048m -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=https://geonoxt-geoserver-2-1016990259637.us-central1.run.app/geoserver/pdf -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine"
-
-# -XX:+UnlockExperimentalVMOptions -XX:-UseJVMCICompiler -XX:TieredStopAtLevel=1
 
 CMD ["/usr/local/tomcat/tmp/entrypoint.sh"]

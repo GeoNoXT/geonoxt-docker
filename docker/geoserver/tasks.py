@@ -46,7 +46,11 @@ def _configure_geoserver_password():
     GEOSERVER_FACTORY_PASSWORD = os.getenv("GEOSERVER_FACTORY_PASSWORD", "geoserver")
     GEOSERVER_LB_HOST_IP = os.getenv("GEOSERVER_LB_HOST_IP", "localhost")
     GEOSERVER_HTTP_PROTOCOL = os.getenv("GEOSERVER_HTTP_PROTOCOL", "http")
-    geoserver_rest_baseurl = f"{GEOSERVER_HTTP_PROTOCOL}://{GEOSERVER_LB_HOST_IP}:{GEOSERVER_LB_PORT}/geoserver/rest"
+    SITEURL = os.getenv("SITEURL")
+    if SITEURL:
+        geoserver_rest_baseurl = f"{SITEURL.rstrip('/')}/geoserver/rest"
+    else:
+        geoserver_rest_baseurl = f"{GEOSERVER_HTTP_PROTOCOL}://{GEOSERVER_LB_HOST_IP}:{GEOSERVER_LB_PORT}/geoserver/rest"
     basic_auth_credentials = base64.b64encode(
         f"{GEOSERVER_ADMIN_USER}:{GEOSERVER_FACTORY_PASSWORD}".encode()
     ).decode()
@@ -85,7 +89,6 @@ def _initialized(ctx):
     GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
     TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
     geoserver_init_lock = Path(GEOSERVER_DATA_DIR) / "geoserver_init.lock"
-    # ctx.run(f"date > {geoserver_init_lock}")
 
     # Verifica si la zona horaria es válida usando pytz
     try:
@@ -102,3 +105,51 @@ def _initialized(ctx):
         ctx.run(f"TZ={TIME_ZONE} date > {geoserver_init_lock}")
     except CalledProcessError as e:
         print(f"Error al ejecutar el comando: {e}")
+
+
+def download_data(ctx):
+    print("**************************downloading data********************************")
+    GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
+    TEMP_DOWNLOAD_DATA = os.getenv("TEMP_DOWNLOAD_DATA", "/tmp/geonode/download_data")
+    GEOSERVER_VERSION = os.getenv("GEOSERVER_VERSION", "2.24.x")
+    FORCE_REINIT = os.getenv("FORCE_REINIT", "false").lower() in ["true", "1"]
+    artifact_url = f"https://artifacts.geonode.org/geoserver/{GEOSERVER_VERSION}/geonode-geoserver-ext-web-app-data.zip"
+    geoserver_init_lock = os.path.join(GEOSERVER_DATA_DIR, "geoserver_init.lock")
+
+    # Crear directorio temporal si no existe
+    os.makedirs(TEMP_DOWNLOAD_DATA, exist_ok=True)
+
+    # Verificar si se debe forzar la reinicialización o si no existe el archivo de bloqueo
+    if FORCE_REINIT or not os.path.exists(geoserver_init_lock):
+        print("Forzando reinicialización o no se encontró geoserver_init.lock.")
+        # Eliminar contenido existente
+        for root, dirs, files in os.walk(GEOSERVER_DATA_DIR):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for directory in dirs:
+                os.rmdir(os.path.join(root, directory))
+        print(f"Contenido de {GEOSERVER_DATA_DIR} eliminado.")
+
+        # Descargar y descomprimir los datos
+        print(f"Descargando datos a {TEMP_DOWNLOAD_DATA} desde {artifact_url}")
+        try:
+            response = requests.get(artifact_url, stream=True)
+            zip_path = os.path.join(TEMP_DOWNLOAD_DATA, "data.zip")
+            with open(zip_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print("Archivo descargado, descomprimiendo...")
+            run(["unzip", "-o", "-d", TEMP_DOWNLOAD_DATA, zip_path], check=True)
+
+            # Copiar los datos al directorio final
+            run(["cp", "-r", os.path.join(TEMP_DOWNLOAD_DATA, "data", "*"), GEOSERVER_DATA_DIR], check=True)
+            print("Datos copiados exitosamente.")
+
+            # Crear archivo de bloqueo
+            with open(geoserver_init_lock, "w") as lock_file:
+                lock_file.write("GeoServer data initialized.")
+            print("Archivo geoserver_init.lock creado.")
+        except Exception as e:
+            print(f"Error al descargar o procesar los datos: {e}")
+    else:
+        print(f"{GEOSERVER_DATA_DIR} ya contiene los datos necesarios y geoserver_init.lock está presente.")

@@ -16,3 +16,5 @@ artifact_url="https://artifacts.geonode.org/geoserver/$GEOSERVER_VERSION/geonode
 echo "Downloading: $artifact_url"
 curl  -k -L "$artifact_url" --output data.zip && unzip -x -d ${TEMP_DOWNLOADED} data.zip
 echo "GeoServer Data Directory download has been completed"
+
+
