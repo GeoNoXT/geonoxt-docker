@@ -7,11 +7,11 @@ source /root/.bashrc
 
 INVOKE_LOG_STDOUT=${INVOKE_LOG_STDOUT:-TRUE}
 invoke () {
-    if [ $INVOKE_LOG_STDOUT = 'true' ] || [ $INVOKE_LOG_STDOUT = 'True' ]
+    if [ "${INVOKE_LOG_STDOUT}" = 'true' ] || [ "${INVOKE_LOG_STDOUT}" = 'True' ]
     then
         /usr/local/bin/invoke $@
     else
-        /usr/local/bin/invoke $@ > /usr/src/geonode/invoke.log 2>&1
+        /usr/local/bin/invoke $@ > /tmp/invoke.log 2>&1
     fi
     echo "$@ tasks done"
 }
