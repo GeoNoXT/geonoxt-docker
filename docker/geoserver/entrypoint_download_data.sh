@@ -20,7 +20,12 @@ invoke () {
 if [ "${FORCE_REINIT}" = "true" ] || [ "${FORCE_REINIT}" = "True" ] || [ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]; then
     echo "Forzando reinicialización o no se encontró geoserver_init.lock."
     echo "Ejecutando invoke download_data"
-    invoke download_data
+    if invoke download_data; then
+        echo "Tarea download_data ejecutada con éxito."
+    else
+        echo "Error al ejecutar la tarea download_data. Verifica el archivo tasks.py y los logs."
+        cat /tmp/invoke.log
+    fi
 else
     echo "Los datos ya están inicializados y geoserver_init.lock está presente."
 fi
