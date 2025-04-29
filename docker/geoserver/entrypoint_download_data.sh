@@ -1,34 +1,59 @@
 #!/bin/bash
+set -euo pipefail
+set -x  # Debug: muestra cada comando ejecutado
 
-set -e
-
-# Cargar variables de entorno
-source /root/.bashrc
-
+# Variables por defecto si no están definidas
+GEOSERVER_DATA_DIR=${GEOSERVER_DATA_DIR:-/geoserver_data/data}
+FORCE_REINIT=${FORCE_REINIT:-false}
 INVOKE_LOG_STDOUT=${INVOKE_LOG_STDOUT:-TRUE}
-invoke () {
-    if [ "${INVOKE_LOG_STDOUT}" = 'true' ] || [ "${INVOKE_LOG_STDOUT}" = 'True' ]
-    then
-        /usr/local/bin/invoke $@
+
+# Cargar variables de entorno si existe .bashrc
+[ -f /root/.bashrc ] && source /root/.bashrc
+
+echo "Entrypoint iniciado"
+echo "GEOSERVER_DATA_DIR: $GEOSERVER_DATA_DIR"
+echo "FORCE_REINIT: $FORCE_REINIT"
+
+# Mostrar entorno y archivos para asegurar que tasks.py está presente
+echo "PWD: $(pwd)"
+ls -la
+
+# Verificar que el archivo tasks.py existe
+if [ ! -f "tasks.py" ]; then
+    echo "ERROR: No se encontró el archivo tasks.py en $(pwd)"
+    exit 1
+fi
+
+# Mostrar las tareas disponibles para confirmar que download_data está registrada
+echo "Verificando tareas disponibles..."
+invoke --list || {
+    echo "ERROR: No se pudieron listar las tareas con invoke."
+    exit 1
+}
+
+# Función para ejecutar invoke
+invoke_wrapper () {
+    if [[ "${INVOKE_LOG_STDOUT,,}" == "true" ]]; then
+        /usr/local/bin/invoke "$@"
     else
-        /usr/local/bin/invoke $@ > /tmp/invoke.log 2>&1
+        /usr/local/bin/invoke "$@" > /tmp/invoke.log 2>&1
     fi
     echo "$@ tasks done"
 }
 
-# Verificar si se debe forzar la reinicialización o si no existe el archivo de bloqueo
-if [ "${FORCE_REINIT}" = "true" ] || [ "${FORCE_REINIT}" = "True" ] || [ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]; then
-    echo "Forzando reinicialización o no se encontró geoserver_init.lock."
-    echo "Ejecutando invoke download_data"
-    if invoke download_data; then
+# Ejecutar tarea si corresponde
+if [[ "${FORCE_REINIT,,}" == "true" ]] || [[ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]]; then
+    echo "Reinicialización forzada o archivo de bloqueo no encontrado."
+    echo "Ejecutando tarea download_data..."
+    if invoke_wrapper download_data; then
         echo "Tarea download_data ejecutada con éxito."
     else
-        echo "Error al ejecutar la tarea download_data. Verifica el archivo tasks.py y los logs."
-        cat /tmp/invoke.log
+        echo "ERROR: Falló la ejecución de download_data. Mostrando logs:"
+        cat /tmp/invoke.log || echo "No hay log disponible."
+        exit 1
     fi
 else
-    echo "Los datos ya están inicializados y geoserver_init.lock está presente."
+    echo "Los datos ya están inicializados y el archivo geoserver_init.lock está presente."
 fi
 
-# Finalizar el script
-echo "Ejecución del entrypoint completada."
+echo "Entrypoint completado."
