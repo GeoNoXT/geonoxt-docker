@@ -148,16 +148,16 @@ then
     export JAVA_OPTS=${GEOSERVER_JAVA_OPTS}
 fi
 
-# control the value of GEOSERVER_LOCATION variable
-if [ -n "$GEOSERVER_LOCATION" ];
+# control the value of NGINX_BASE_URL variable
+if [ -z `echo ${NGINX_BASE_URL} | sed 's/http:\/\/\([^:]*\).*/\1/'` ]
 then
-    echo "$GEOSERVER_LOCATION is defined and not empty with the value '$GEOSERVER_LOCATION'"
-    echo "Setting GEOSERVER_LOCATION='${GEOSERVER_LOCATION}' "
-    echo export GEOSERVER_LOCATION=${GEOSERVER_LOCATION} >> /root/.override_env
+    echo "NGINX_BASE_URL is empty so I'll use the default Geoserver base url"
+    echo "Setting GEOSERVER_LOCATION='${SITEURL}'"
+    echo export GEOSERVER_LOCATION=${SITEURL} >> /root/.override_env
 else
-    echo "GEONODE_LOCATION is either not defined or empty so I'll use the default GeoNode location "
-    echo "Setting GEONODE_LOCATION='${GEONODE_HTTP_PROTOCOL}://${GEONODE_LB_HOST_IP}:${GEONODE_LB_PORT}' "
-    echo export GEOSERVER_LOCATION=${GEOSERVER_HTTP_PROTOCOL}://${GEOSERVER_LB_HOST_IP}:${GEOSERVER_LB_PORT} >> /root/.override_env
+    echo "NGINX_BASE_URL is filled so GEOSERVER_LOCATION='${NGINX_BASE_URL}'"
+    echo "Setting GEOSERVER_LOCATION='${NGINX_BASE_URL}'"
+    echo export GEOSERVER_LOCATION=${NGINX_BASE_URL} >> /root/.override_env
 fi
 
 if [ -n "$GEONODE_LOCATION" ];
