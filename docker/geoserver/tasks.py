@@ -107,6 +107,7 @@ def _initialized(ctx):
         print(f"Error al ejecutar el comando: {e}")
 
 
+@task
 def download_data(ctx):
     print("**************************downloading data********************************")
     GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
