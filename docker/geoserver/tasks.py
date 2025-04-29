@@ -144,10 +144,10 @@ def download_data(ctx):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             print("Archivo descargado, descomprimiendo...")
-            run(["unzip", "-o", "-d", TEMP_DOWNLOAD_DATA, zip_path], check=True)
+            ctx.run(f"unzip -o -d {TEMP_DOWNLOAD_DATA} {zip_path}", pty=True)
 
             # Copiar los datos al directorio final
-            run(["cp", "-r", os.path.join(TEMP_DOWNLOAD_DATA, "data", "*"), GEOSERVER_DATA_DIR], check=True)
+            ctx.run(f"cp -r {os.path.join(TEMP_DOWNLOAD_DATA, 'data', '*')} {GEOSERVER_DATA_DIR}", pty=True)
             print("Datos copiados exitosamente.")
 
             # Crear archivo de bloqueo
