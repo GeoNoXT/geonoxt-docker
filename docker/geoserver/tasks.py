@@ -115,6 +115,10 @@ def download_data(ctx):
     FORCE_REINIT = os.getenv("FORCE_REINIT", "false").lower() in ["True", "true", "1"]
     artifact_url = f"https://artifacts.geonode.org/geoserver/{GEOSERVER_VERSION}/geonode-geoserver-ext-web-app-data.zip"
     geoserver_init_lock = os.path.join(GEOSERVER_DATA_DIR, "geoserver_init.lock")
+    print(f"GEOSERVER_DATA_DIR: {GEOSERVER_DATA_DIR}")
+    print(f"GEOSERVER_VERSION: {GEOSERVER_VERSION}")
+    print(f"FORCE_REINIT: {FORCE_REINIT}")
+    print(f"artifact_url: {artifact_url}")
 
     # Crear directorio temporal si no existe
     os.makedirs(TEMP_DOWNLOAD_DATA, exist_ok=True)
