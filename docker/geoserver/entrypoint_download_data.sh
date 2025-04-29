@@ -8,7 +8,9 @@ FORCE_REINIT=${FORCE_REINIT:-false}
 INVOKE_LOG_STDOUT=${INVOKE_LOG_STDOUT:-TRUE}
 
 # Cargar variables de entorno si existe .bashrc
-[ -f /root/.bashrc ] && source /root/.bashrc
+if [ -f /root/.bashrc ] && [[ $- == *i* ]]; then
+  source /root/.bashrc
+fi
 
 echo "Entrypoint iniciado"
 echo "GEOSERVER_DATA_DIR: $GEOSERVER_DATA_DIR"
