@@ -136,7 +136,7 @@ def download_data(ctx):
                     shutil.rmtree(path)
                 else:
                     os.remove(path)
-        print(f"Contenido de {GEOSERVER_DATA_DIR} eliminado.")
+            print(f"Contenido de {GEOSERVER_DATA_DIR} eliminado.")
 
         # Descargar y descomprimir los datos
         print(f"Descargando datos a {TEMP_DOWNLOAD_DATA} desde {artifact_url}")
