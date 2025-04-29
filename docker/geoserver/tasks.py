@@ -24,6 +24,7 @@ import base64
 import requests
 from pathlib import Path
 from invoke import task
+import shutil
 import pytz
 from subprocess import run, CalledProcessError
 
@@ -128,11 +129,13 @@ def download_data(ctx):
     if FORCE_REINIT or not os.path.exists(geoserver_init_lock):
         print("Forzando reinicialización o no se encontró geoserver_init.lock.")
         # Eliminar contenido existente
-        for root, dirs, files in os.walk(GEOSERVER_DATA_DIR):
-            for file in files:
-                os.remove(os.path.join(root, file))
-            for directory in dirs:
-                os.rmdir(os.path.join(root, directory))
+        if os.path.exists(GEOSERVER_DATA_DIR):
+            for item in os.listdir(GEOSERVER_DATA_DIR):
+                path = os.path.join(GEOSERVER_DATA_DIR, item)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
         print(f"Contenido de {GEOSERVER_DATA_DIR} eliminado.")
 
         # Descargar y descomprimir los datos
