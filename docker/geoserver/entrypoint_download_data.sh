@@ -47,10 +47,10 @@ invoke_wrapper () {
 if [[ "${FORCE_REINIT,,}" == "true" ]] || [[ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]]; then
     echo "Reinicialización forzada o archivo de bloqueo no encontrado."
     echo "Ejecutando tarea download_data..."
-    if invoke_wrapper download_data; then
-        echo "Tarea download_data ejecutada con éxito."
+    if invoke_wrapper download-data; then
+        echo "Tarea download-data ejecutada con éxito."
     else
-        echo "ERROR: Falló la ejecución de download_data. Mostrando logs:"
+        echo "ERROR: Falló la ejecución de download-data. Mostrando logs:"
         cat /tmp/invoke.log || echo "No hay log disponible."
         exit 1
     fi
