@@ -65,13 +65,9 @@ do
         proxyBaseUrl | redirectUri )
             echo "DEBUG: Editing '$auth_conf_source' for tagname <$i> and replacing its value with '$GEOSERVER_LOCATION'"
             newvalue=`echo -ne "$tagvalue" | sed -re "s@^(https?://[^/]+)@${GEOSERVER_LOCATION%/}@"`;;
-        accessTokenUri | checkTokenEndpointUrl | userAuthorizationUri | logoutUri )
+        baseUrl | accessTokenUri | checkTokenEndpointUrl | userAuthorizationUri | logoutUri )
             echo "DEBUG: Editing '$auth_conf_source' for tagname <$i> and replacing its value with '$GEONODE_LOCATION'"
             newvalue=`echo -ne "$tagvalue" | sed -re "s@^(https?://[^/]+)@${GEONODE_LOCATION%/}@"`;;
-        baseUrl )
-            echo "DEBUG: Editing '$auth_conf_source' for tagname <$i> and replacing its value with '$GEONODE_LOCATION'"
-            newvalue=`echo -ne "$tagvalue" | sed -re "s@^(https?://[^/]+)@${GEONODE_LOCATION}@"`;;
-        *) echo -n "an unknown variable has been found";;
     esac
 
     echo "DEBUG: Found the new value for the element <$i> - '$newvalue'"
