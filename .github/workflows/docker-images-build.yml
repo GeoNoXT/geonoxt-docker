@@ -126,13 +126,18 @@ jobs:
             # Construcción de tags
             # -------------------------------------------------
             TAG_ARGS=()
+            TAGS=()
+            
             TAG_ARGS+=(-t "$IMAGE_BASE:$MOVING")
-
+            TAGS+=("$IMAGE_BASE:$MOVING")
+            
             if [ -n "$VERSION" ]; then
               TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION")
-
+              TAGS+=("$IMAGE_BASE:$VERSION")
+            
               if [ -n "$FLAVOR" ]; then
                 TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION-$FLAVOR")
+                TAGS+=("$IMAGE_BASE:$VERSION-$FLAVOR")
               fi
             fi
 
@@ -146,8 +151,8 @@ jobs:
             # -------------------------------------------------
             # Push SOLO los tags construidos
             # -------------------------------------------------
-            for TAG_ARG in "${TAG_ARGS[@]}"; do
-              docker push "${TAG_ARG#-t }"
+            for TAG in "${TAGS[@]}"; do
+              docker push "$TAG"
             done
 
           done
