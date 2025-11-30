@@ -42,7 +42,7 @@ jobs:
             FLAVOR="xt-gcp-dev"
             MOVING_TAG="xt-gcp-dev"
           else
-            echo "Rama no soportada: $BRANCH"
+            echo "Unsupported branch: $BRANCH"
             exit 1
           fi
 
