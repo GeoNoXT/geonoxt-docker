@@ -104,8 +104,8 @@ jobs:
             # -------------------------------------------------
             for VAR in "${!ARG_VARS[@]}"; do
               BASE_TAG=$(echo "$BASE_TAG" \
-                | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" \
-                | sed "s/\$$VAR/${ARG_VARS[$VAR]}/g")
+                | sed "s|\${$VAR}|${ARG_VARS[$VAR]}|g" \
+                | sed "s|\$$VAR|${ARG_VARS[$VAR]}|g")
             done
 
             VERSION="$(echo "$BASE_TAG" | tr -d ' ')"
