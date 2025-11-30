@@ -67,6 +67,10 @@ jobs:
           # Extract version from FROM
           BASE_TAG=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1 | sed 's/.*://')
           VERSION=$(echo "$BASE_TAG" | tr -d ' ')
+          # Skip version-based tagging for images using :latest
+          if [ "$VERSION" = "latest" ]; then
+            VERSION=""
+          fi
 
           echo "---------------------------------------------"
           echo "Service:   $SERVICE"
