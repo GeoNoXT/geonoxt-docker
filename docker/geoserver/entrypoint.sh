@@ -30,7 +30,7 @@ invoke_wrapper () {
 }
 
 if [[ "${FORCE_REINIT,,}" == "true" ]] || [[ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]]; then
-    echo "Initialising GeoServer DataDir..."
+    echo "Initializing GeoServer DataDir..."
     if ! invoke_wrapper download-data; then
         echo "ERROR running download-data"
         cat /tmp/invoke.log || true
