@@ -91,13 +91,16 @@ jobs:
             echo "----------------------------------------------------"
 
             TAGS=("$IMAGE_BASE:$MOVING")
-
+            
             if [ -n "$VERSION" ]; then
-              TAGS+=("$IMAGE_BASE:$VERSION")
-
-              if [ -n "$FLAVOR" ]; then
+            
+              # ✅ Only master publishes base version tag
+              if [ -z "$FLAVOR" ]; then
+                TAGS+=("$IMAGE_BASE:$VERSION")
+              else
                 TAGS+=("$IMAGE_BASE:$VERSION-$FLAVOR")
               fi
+            
             fi
 
             TAG_ARGS=()
