@@ -1,10 +1,10 @@
-ARG IMAGE_VERSION=9.0.104-jdk11-temurin-jammy
+ARG IMAGE_VERSION=9.0.106-jdk11-temurin-jammy
 ARG JAVA_HOME=/usr/local/openjdk-11
 FROM tomcat:$IMAGE_VERSION
 LABEL GeoNoXTeam="GeoNoXT development team"
 
 
-ARG GEOSERVER_VERSION=2.24.x
+ARG GEOSERVER_VERSION=2.27.x
 ARG GEOSERVER_DATA_DIR="/geoserver_data/data"
 ARG GEOSERVER_CORS_ENABLED=False
 ARG GEOSERVER_CORS_ALLOWED_ORIGINS=*
@@ -30,7 +30,12 @@ RUN apt-get update -y && apt-get install curl wget unzip apt-utils -y
 RUN cd /usr/local/tomcat/webapps \
     && wget --no-check-certificate --progress=bar:force:noscroll https://artifacts.geonode.org/geoserver/${GEOSERVER_VERSION}/geoserver.war -O geoserver.war \
     && unzip -q geoserver.war -d geoserver \
-    && rm geoserver.war
+    && rm geoserver.war \
+    && mkdir -p $GEOSERVER_DATA_DIR
+
+COPY applicationContext.xml /usr/local/tomcat/webapps/geoserver/WEB-INF/classes/applicationContext.xml
+
+VOLUME $GEOSERVER_DATA_DIR
 
 # copy the script and perform the run of scripts from entrypoint.sh
 RUN mkdir -p /usr/local/tomcat/tmp
