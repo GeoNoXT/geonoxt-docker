@@ -94,23 +94,24 @@ jobs:
             echo "Flavor:    ${FLAVOR:-none}"
             echo "MovingTag: $MOVING"
 
-            TAGS="-t $IMAGE_BASE:$MOVING"
+            TAG_ARGS=()
+            TAG_ARGS+=(-t "$IMAGE_BASE:$MOVING")
 
             if [ -n "$VERSION" ]; then
-              TAGS+=" -t $IMAGE_BASE:$VERSION"
+              TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION")
 
               if [ -n "$FLAVOR" ]; then
-                TAGS+=" -t $IMAGE_BASE:$VERSION-$FLAVOR"
+                TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION-$FLAVOR")
               fi
             fi
 
             docker build \
-              $TAGS \
+              "${TAG_ARGS[@]}" \
               "./docker/$SERVICE"
 
             # Push only the tags built in this run
-            for TAG_ARG in $TAGS; do
-              TAG=$(echo "$TAG_ARG" | sed 's/-t //')
+            for TAG_ARG in "${TAG_ARGS[@]}"; do
+              TAG="${TAG_ARG#-t }"
               docker push "$TAG"
             done
 
