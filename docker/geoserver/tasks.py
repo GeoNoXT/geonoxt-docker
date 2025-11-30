@@ -113,7 +113,7 @@ def download_data(ctx):
     print("**************************downloading data********************************")
     GEOSERVER_DATA_DIR = os.getenv("GEOSERVER_DATA_DIR", "/geoserver_data/data/")
     TEMP_DOWNLOAD_DATA = os.getenv("TEMP_DOWNLOAD_DATA", "/tmp/geonode/download_data")
-    GEOSERVER_VERSION = os.getenv("GEOSERVER_VERSION", "2.24.x")
+    GEOSERVER_VERSION = os.getenv("GEOSERVER_VERSION", "2.27.x")
     FORCE_REINIT = os.getenv("FORCE_REINIT", "false").lower() in ["True", "true", "1"]
     artifact_url = f"https://artifacts.geonode.org/geoserver/{GEOSERVER_VERSION}/geonode-geoserver-ext-web-app-data.zip"
     geoserver_init_lock = os.path.join(GEOSERVER_DATA_DIR, "geoserver_init.lock")
