@@ -98,6 +98,10 @@ jobs:
               $TAGS \
               "./docker/$SERVICE"
 
-            docker push --all-tags "$IMAGE_BASE"
+            # Push only the tags built in this run
+            for TAG_ARG in $TAGS; do
+              TAG=$(echo "$TAG_ARG" | sed 's/-t //')
+              docker push "$TAG"
+            done
 
           done
