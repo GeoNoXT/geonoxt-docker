@@ -69,7 +69,7 @@ jobs:
             DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
             # Extraer versión del FROM, resolviendo variables de ARG si existen
-            # Extraer todas las variables ARG del Dockerfile
+            # Extract all ARG variables from the Dockerfile
             declare -A ARG_VARS
             while IFS= read -r line; do
               # Handle both ARG NAME=VALUE and ARG NAME
