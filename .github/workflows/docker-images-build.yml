@@ -86,7 +86,7 @@ jobs:
             done < <(grep -E '^ARG ' "$DOCKERFILE")
 
             FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
-            BASE_TAG=$(echo "$FROM_LINE" | sed 's/.*://')
+            BASE_TAG=$(echo "$FROM_LINE" | sed -E 's/^FROM [^ ]+:([^ ]+).*$/\1/')
             # Sustituir todas las variables ${VAR} y $VAR en BASE_TAG
             for VAR in "${!ARG_VARS[@]}"; do
               BASE_TAG=$(echo "$BASE_TAG" | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" | sed 's/$'"$VAR"'/'"${ARG_VARS[$VAR]}"'/g')
