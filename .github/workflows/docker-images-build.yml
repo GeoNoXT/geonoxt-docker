@@ -69,10 +69,20 @@ jobs:
             DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
             # Extraer versión del FROM, resolviendo variables de ARG si existen
-            POSTGRES_VERSION=$(grep -E '^ARG POSTGRES_VERSION=' "$DOCKERFILE" | cut -d'=' -f2)
-            POSTGIS_VERSION=$(grep -E '^ARG POSTGIS_VERSION=' "$DOCKERFILE" | cut -d'=' -f2)
+            # Extraer todas las variables ARG del Dockerfile
+            declare -A ARG_VARS
+            while IFS= read -r line; do
+              VAR_NAME=$(echo "$line" | sed -E 's/^ARG ([^=]+)=.*$/\1/')
+              VAR_VALUE=$(echo "$line" | sed -E 's/^ARG [^=]+=(.*)$/\1/')
+              ARG_VARS["$VAR_NAME"]="$VAR_VALUE"
+            done < <(grep -E '^ARG [^=]+=' "$DOCKERFILE")
+
             FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
-            BASE_TAG=$(echo "$FROM_LINE" | sed 's/.*://' | sed 's/\${POSTGRES_VERSION}/'"$POSTGRES_VERSION"'/' | sed 's/\${POSTGIS_VERSION}/'"$POSTGIS_VERSION"'/')
+            BASE_TAG=$(echo "$FROM_LINE" | sed 's/.*://')
+            # Sustituir todas las variables ${VAR} y $VAR en BASE_TAG
+            for VAR in "${!ARG_VARS[@]}"; do
+              BASE_TAG=$(echo "$BASE_TAG" | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" | sed "s/\$$VAR/${ARG_VARS[$VAR]}/g")
+            done
             VERSION=$(echo "$BASE_TAG" | tr -d ' ')
             if [ "$VERSION" = "latest" ]; then
               VERSION=""
