@@ -15,6 +15,35 @@ invoke () {
     echo "$@ tasks done"
 }
 
+# -------------------------------------------------
+# INIT STEP: Seed DataDir if needed
+# -------------------------------------------------
+GEOSERVER_DATA_DIR=${GEOSERVER_DATA_DIR:-/geoserver_data/data}
+FORCE_REINIT=${FORCE_REINIT:-false}
+
+invoke_wrapper () {
+    if [[ "${INVOKE_LOG_STDOUT,,}" == "true" ]]; then
+        /usr/local/bin/invoke "$@"
+    else
+        /usr/local/bin/invoke "$@" > /tmp/invoke.log 2>&1
+    fi
+}
+
+if [[ "${FORCE_REINIT,,}" == "true" ]] || [[ ! -e "${GEOSERVER_DATA_DIR}/geoserver_init.lock" ]]; then
+    echo "Initialising GeoServer DataDir..."
+    if ! invoke_wrapper download-data; then
+        echo "ERROR running download-data"
+        cat /tmp/invoke.log || true
+        exit 1
+    fi
+else
+    echo "GeoServer DataDir already initialised"
+fi
+
+# -------------------------------------------------
+# END INIT STEP: Seed DataDir if needed
+# -------------------------------------------------
+
 if [ -n "$GEONODE_HTTP_PROTOCOL" ];
 then
     echo "GEONODE_HTTP_PROTOCOL is defined and not empty with the value '$GEONODE_HTTP_PROTOCOL' "
