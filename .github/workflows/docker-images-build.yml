@@ -1,0 +1,114 @@
+name: Build all GeoNoXT images
+
+on:
+  push:
+    branches:
+      - master
+      - xt.gcp
+      - xt.gcp.dev
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_ROOT: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Map branch to flavor tag
+        id: vars
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+
+          if [ "$BRANCH" = "master" ]; then
+            FLAVOR=""
+            MOVING="latest"
+          elif [ "$BRANCH" = "xt.gcp" ]; then
+            FLAVOR="xt-gcp"
+            MOVING="xt-gcp"
+          elif [ "$BRANCH" = "xt.gcp.dev" ]; then
+            FLAVOR="xt-gcp-dev"
+            MOVING="xt-gcp-dev"
+          else
+            echo "Unsupported branch: $BRANCH"
+            exit 1
+          fi
+
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+          echo "moving=$MOVING" >> $GITHUB_OUTPUT
+
+      - name: Build and push all images
+        run: |
+          set -euo pipefail
+
+          FLAVOR="${{ steps.vars.outputs.flavor }}"
+          MOVING="${{ steps.vars.outputs.moving }}"
+
+          SERVICES=(
+            geoserver
+            geoserver_data
+            nginx
+            postgis
+            letsencrypt
+          )
+
+          for SERVICE in "${SERVICES[@]}"; do
+            DOCKERFILE="./docker/$SERVICE/Dockerfile"
+            IMAGE_BASE="$(echo "$REGISTRY/$IMAGE_ROOT/$SERVICE" | tr '[:upper:]' '[:lower:]')"
+            VERSION=""
+
+            case "$SERVICE" in
+              geoserver|geoserver_data)
+                VERSION=$(grep -E '^ARG GEOSERVER_VERSION=' "$DOCKERFILE" | cut -d= -f2 || true)
+                ;;
+              nginx)
+                VERSION=$(grep -E '^ARG NGINX_VERSION=' "$DOCKERFILE" | cut -d= -f2 || true)
+                ;;
+              postgis)
+                PG=$(grep -E '^ARG POSTGRES_VERSION=' "$DOCKERFILE" | cut -d= -f2 || true)
+                GIS=$(grep -E '^ARG POSTGIS_VERSION=' "$DOCKERFILE" | cut -d= -f2 || true)
+                VERSION="${PG}-${GIS}"
+                ;;
+            esac
+
+            echo "----------------------------------------------------"
+            echo "Service    : $SERVICE"
+            echo "Moving tag : $MOVING"
+            echo "Flavor     : ${FLAVOR:-none}"
+            echo "Upstream   : ${VERSION:-none}"
+            echo "----------------------------------------------------"
+
+            TAGS=("$IMAGE_BASE:$MOVING")
+
+            if [ -n "$VERSION" ]; then
+              TAGS+=("$IMAGE_BASE:$VERSION")
+
+              if [ -n "$FLAVOR" ]; then
+                TAGS+=("$IMAGE_BASE:$VERSION-$FLAVOR")
+              fi
+            fi
+
+            TAG_ARGS=()
+            for t in "${TAGS[@]}"; do
+              TAG_ARGS+=(-t "$t")
+            done
+
+            docker build "${TAG_ARGS[@]}" "./docker/$SERVICE"
+
+            for t in "${TAGS[@]}"; do
+              docker push "$t"
+            done
+
+          done
