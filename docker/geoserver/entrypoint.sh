@@ -296,9 +296,5 @@ if [ ${FORCE_REINIT} = "true" ]  || [ ${FORCE_REINIT} = "True" ] || [ ! -e "${GE
     nohup sh -c "invoke configure-geoserver" &
 fi
 
-if [ -n "$DATABASE_URL" ]; then
-  export JAVA_OPTS="$JAVA_OPTS -Dhibernate.connection.url=$DATABASE_URL"
-fi
-
 # start tomcat
 exec env JAVA_OPTS="${JAVA_OPTS}" catalina.sh run
