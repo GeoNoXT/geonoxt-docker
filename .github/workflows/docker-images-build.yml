@@ -68,7 +68,7 @@ jobs:
 
           for SERVICE in "${SERVICES[@]}"; do
 
-            IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
+            IMAGE_BASE="$REGISTRY/$(echo "$IMAGE_ROOT" | tr '[:upper:]' '[:lower:]')/$SERVICE"
             DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
             # -------------------------------------------------
