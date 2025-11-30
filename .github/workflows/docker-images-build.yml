@@ -1,0 +1,126 @@
+name: Build all GeoNoXT images
+
+on:
+  push:
+    branches:
+      - master
+      - xt.gcp
+      - xt.gcp.dev
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_ROOT: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Map branch to flavor tag
+        id: vars
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+
+          if [ "$BRANCH" = "master" ]; then
+            FLAVOR=""
+            MOVING_TAG="latest"
+          elif [ "$BRANCH" = "xt.gcp" ]; then
+            FLAVOR="xt-gcp"
+            MOVING_TAG="xt-gcp"
+          elif [ "$BRANCH" = "xt.gcp.dev" ]; then
+            FLAVOR="xt-gcp-dev"
+            MOVING_TAG="xt-gcp-dev"
+          else
+            echo "Unsupported branch: $BRANCH"
+            exit 1
+          fi
+
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+          echo "moving=$MOVING_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push all images
+        run: |
+          FLAVOR="${{ steps.vars.outputs.flavor }}"
+          MOVING="${{ steps.vars.outputs.moving }}"
+
+          SERVICES=(
+            geoserver
+            geoserver_data
+            nginx
+            postgis
+            letsencrypt
+          )
+
+          for SERVICE in "${SERVICES[@]}"; do
+
+            IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
+
+            DOCKERFILE="./docker/$SERVICE/Dockerfile"
+
+            # Extraer versión del FROM, resolviendo variables de ARG si existen
+            # Extract all ARG variables from the Dockerfile
+            declare -A ARG_VARS
+            while IFS= read -r line; do
+              # Handle both ARG NAME=VALUE and ARG NAME
+              if [[ "$line" =~ ^ARG[[:space:]]+([^=]+)=(.*)$ ]]; then
+                VAR_NAME="${BASH_REMATCH[1]}"
+                VAR_VALUE="${BASH_REMATCH[2]}"
+              elif [[ "$line" =~ ^ARG[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)$ ]]; then
+                VAR_NAME="${BASH_REMATCH[1]}"
+                VAR_VALUE=""
+              else
+                continue
+              fi
+              ARG_VARS["$VAR_NAME"]="$VAR_VALUE"
+            done < <(grep -E '^ARG ' "$DOCKERFILE")
+
+            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
+            BASE_TAG=$(echo "$FROM_LINE" | sed -E 's/^FROM [^ ]+:([^ ]+).*$/\1/')
+            # Sustituir todas las variables ${VAR} y $VAR en BASE_TAG
+            for VAR in "${!ARG_VARS[@]}"; do
+              BASE_TAG=$(echo "$BASE_TAG" | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" | sed 's/$'"$VAR"'/'"${ARG_VARS[$VAR]}"'/g')
+            done
+            VERSION=$(echo "$BASE_TAG" | tr -d ' ')
+            if [ "$VERSION" = "latest" ]; then
+              VERSION=""
+            fi
+
+            echo "---------------------------------------------"
+            echo "Service:   $SERVICE"
+            echo "Upstream:  $VERSION"
+            echo "Flavor:    ${FLAVOR:-none}"
+            echo "MovingTag: $MOVING"
+
+            TAG_ARGS=()
+            TAG_ARGS+=(-t "$IMAGE_BASE:$MOVING")
+
+            if [ -n "$VERSION" ]; then
+              TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION")
+
+              if [ -n "$FLAVOR" ]; then
+                TAG_ARGS+=(-t "$IMAGE_BASE:$VERSION-$FLAVOR")
+              fi
+            fi
+
+            docker build \
+              "${TAG_ARGS[@]}" \
+              "./docker/$SERVICE"
+
+            # Push only the tags built in this run
+            for TAG_ARG in "${TAG_ARGS[@]}"; do
+              TAG="${TAG_ARG#-t }"
+              docker push "$TAG"
+            done
+
+          done
