@@ -94,7 +94,7 @@ jobs:
             # -------------------------------------------------
             # Tomar el ÚLTIMO FROM (soporte multi-stage)
             # -------------------------------------------------
-            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | tail -n 1)
+            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n 1)
 
             # Extraer la parte del tag (:TAG)
             BASE_TAG=$(echo "$FROM_LINE" | sed -E 's/^FROM [^ ]+:([^ ]+).*$/\1/')
