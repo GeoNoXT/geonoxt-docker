@@ -72,10 +72,18 @@ jobs:
             # Extraer todas las variables ARG del Dockerfile
             declare -A ARG_VARS
             while IFS= read -r line; do
-              VAR_NAME=$(echo "$line" | sed -E 's/^ARG ([^=]+)=.*$/\1/')
-              VAR_VALUE=$(echo "$line" | sed -E 's/^ARG [^=]+=(.*)$/\1/')
+              # Handle both ARG NAME=VALUE and ARG NAME
+              if [[ "$line" =~ ^ARG[[:space:]]+([^=]+)=(.*)$ ]]; then
+                VAR_NAME="${BASH_REMATCH[1]}"
+                VAR_VALUE="${BASH_REMATCH[2]}"
+              elif [[ "$line" =~ ^ARG[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)$ ]]; then
+                VAR_NAME="${BASH_REMATCH[1]}"
+                VAR_VALUE=""
+              else
+                continue
+              fi
               ARG_VARS["$VAR_NAME"]="$VAR_VALUE"
-            done < <(grep -E '^ARG [^=]+=' "$DOCKERFILE")
+            done < <(grep -E '^ARG ' "$DOCKERFILE")
 
             FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
             BASE_TAG=$(echo "$FROM_LINE" | sed 's/.*://')
