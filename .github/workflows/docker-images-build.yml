@@ -68,8 +68,11 @@ jobs:
 
             DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
-            # Extraer versión del FROM
-            BASE_TAG=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1 | sed 's/.*://')
+            # Extraer versión del FROM, resolviendo variables de ARG si existen
+            POSTGRES_VERSION=$(grep -E '^ARG POSTGRES_VERSION=' "$DOCKERFILE" | cut -d'=' -f2)
+            POSTGIS_VERSION=$(grep -E '^ARG POSTGIS_VERSION=' "$DOCKERFILE" | cut -d'=' -f2)
+            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
+            BASE_TAG=$(echo "$FROM_LINE" | sed 's/.*://' | sed 's/\${POSTGRES_VERSION}/'"$POSTGRES_VERSION"'/' | sed 's/\${POSTGIS_VERSION}/'"$POSTGIS_VERSION"'/')
             VERSION=$(echo "$BASE_TAG" | tr -d ' ')
             if [ "$VERSION" = "latest" ]; then
               VERSION=""
