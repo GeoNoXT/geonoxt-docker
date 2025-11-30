@@ -1,0 +1,97 @@
+name: Build all GeoNoXT images
+
+on:
+  push:
+    branches:
+      - master
+      - xt.gcp
+      - xt.gcp.dev
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_ROOT: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Map branch to flavor tag
+        id: vars
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+
+          if [ "$BRANCH" = "master" ]; then
+            FLAVOR=""
+            MOVING_TAG="latest"
+          elif [ "$BRANCH" = "xt.gcp" ]; then
+            FLAVOR="xt-gcp"
+            MOVING_TAG="xt-gcp"
+          elif [ "$BRANCH" = "xt.gcp.dev" ]; then
+            FLAVOR="xt-gcp-dev"
+            MOVING_TAG="xt-gcp-dev"
+          else
+            echo "Rama no soportada: $BRANCH"
+            exit 1
+          fi
+
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+          echo "moving=$MOVING_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push all images
+        run: |
+          FLAVOR="${{ steps.vars.outputs.flavor }}"
+          MOVING="${{ steps.vars.outputs.moving }}"
+
+          SERVICES=(
+            geoserver
+            geoserver_data
+            nginx
+            postgis
+            letsencrypt
+          )
+
+          for SERVICE in "${SERVICES[@]}"; do
+
+            IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
+
+            DOCKERFILE="./docker/$SERVICE/Dockerfile"
+
+            # Extraer versión del FROM
+            BASE_TAG=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1 | sed 's/.*://')
+            VERSION=$(echo "$BASE_TAG" | tr -d ' ')
+
+            echo "---------------------------------------------"
+            echo "Service:   $SERVICE"
+            echo "Upstream:  $VERSION"
+            echo "Flavor:    ${FLAVOR:-none}"
+            echo "MovingTag: $MOVING"
+
+            TAGS="-t $IMAGE_BASE:$MOVING"
+
+            if [ -n "$VERSION" ]; then
+              TAGS+=" -t $IMAGE_BASE:$VERSION"
+
+              if [ -n "$FLAVOR" ]; then
+                TAGS+=" -t $IMAGE_BASE:$VERSION-$FLAVOR"
+              fi
+            fi
+
+            docker build \
+              $TAGS \
+              "./docker/$SERVICE"
+
+            docker push --all-tags "$IMAGE_BASE"
+
+          done
