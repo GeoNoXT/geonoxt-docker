@@ -15,6 +15,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        service: [geoserver, geoserver_data, nginx, postgis, letsencrypt]
+      fail-fast: false
+
     permissions:
       contents: read
       packages: write
@@ -49,49 +54,38 @@ jobs:
           echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
           echo "moving=$MOVING_TAG" >> $GITHUB_OUTPUT
 
-      - name: Build and push all images
+      - name: Build and push ${{ matrix.service }} image
         run: |
           FLAVOR="${{ steps.vars.outputs.flavor }}"
           MOVING="${{ steps.vars.outputs.moving }}"
+          SERVICE="${{ matrix.service }}"
 
-          SERVICES=(
-            geoserver
-            geoserver_data
-            nginx
-            postgis
-            letsencrypt
-          )
+          IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
 
-          for SERVICE in "${SERVICES[@]}"; do
+          DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
-            IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
+          # Extract version from FROM
+          BASE_TAG=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1 | sed 's/.*://')
+          VERSION=$(echo "$BASE_TAG" | tr -d ' ')
 
-            DOCKERFILE="./docker/$SERVICE/Dockerfile"
+          echo "---------------------------------------------"
+          echo "Service:   $SERVICE"
+          echo "Upstream:  $VERSION"
+          echo "Flavor:    ${FLAVOR:-none}"
+          echo "MovingTag: $MOVING"
 
-            # Extraer versión del FROM
-            BASE_TAG=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1 | sed 's/.*://')
-            VERSION=$(echo "$BASE_TAG" | tr -d ' ')
+          TAGS="-t $IMAGE_BASE:$MOVING"
 
-            echo "---------------------------------------------"
-            echo "Service:   $SERVICE"
-            echo "Upstream:  $VERSION"
-            echo "Flavor:    ${FLAVOR:-none}"
-            echo "MovingTag: $MOVING"
+          if [ -n "$VERSION" ]; then
+            TAGS+=" -t $IMAGE_BASE:$VERSION"
 
-            TAGS="-t $IMAGE_BASE:$MOVING"
-
-            if [ -n "$VERSION" ]; then
-              TAGS+=" -t $IMAGE_BASE:$VERSION"
-
-              if [ -n "$FLAVOR" ]; then
-                TAGS+=" -t $IMAGE_BASE:$VERSION-$FLAVOR"
-              fi
+            if [ -n "$FLAVOR" ]; then
+              TAGS+=" -t $IMAGE_BASE:$VERSION-$FLAVOR"
             fi
+          fi
 
-            docker build \
-              $TAGS \
-              "./docker/$SERVICE"
+          docker build \
+            $TAGS \
+            "./docker/$SERVICE"
 
-            docker push --all-tags "$IMAGE_BASE"
-
-          done
+          docker push --all-tags "$IMAGE_BASE"
