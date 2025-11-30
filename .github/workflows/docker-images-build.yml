@@ -30,6 +30,8 @@ jobs:
       - name: Map branch to flavor tag
         id: vars
         run: |
+          set -euo pipefail
+
           BRANCH="${GITHUB_REF##*/}"
 
           if [ "$BRANCH" = "master" ]; then
@@ -51,6 +53,8 @@ jobs:
 
       - name: Build and push all images
         run: |
+          set -euo pipefail
+
           FLAVOR="${{ steps.vars.outputs.flavor }}"
           MOVING="${{ steps.vars.outputs.moving }}"
 
@@ -65,17 +69,19 @@ jobs:
           for SERVICE in "${SERVICES[@]}"; do
 
             IMAGE_BASE="$REGISTRY/$IMAGE_ROOT/$SERVICE"
-
             DOCKERFILE="./docker/$SERVICE/Dockerfile"
 
-            # Extraer versión del FROM, resolviendo variables de ARG si existen
-            # Extract all ARG variables from the Dockerfile
+            # -------------------------------------------------
+            # Leer todas las variables ARG del Dockerfile
+            # -------------------------------------------------
             declare -A ARG_VARS
+
             while IFS= read -r line; do
-              # Handle both ARG NAME=VALUE and ARG NAME
+              # ARG NAME=value
               if [[ "$line" =~ ^ARG[[:space:]]+([^=]+)=(.*)$ ]]; then
                 VAR_NAME="${BASH_REMATCH[1]}"
                 VAR_VALUE="${BASH_REMATCH[2]}"
+              # ARG NAME
               elif [[ "$line" =~ ^ARG[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)$ ]]; then
                 VAR_NAME="${BASH_REMATCH[1]}"
                 VAR_VALUE=""
@@ -85,23 +91,40 @@ jobs:
               ARG_VARS["$VAR_NAME"]="$VAR_VALUE"
             done < <(grep -E '^ARG ' "$DOCKERFILE")
 
-            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | head -n1)
+            # -------------------------------------------------
+            # Tomar el ÚLTIMO FROM (soporte multi-stage)
+            # -------------------------------------------------
+            FROM_LINE=$(grep -E '^FROM ' "$DOCKERFILE" | tail -n 1)
+
+            # Extraer la parte del tag (:TAG)
             BASE_TAG=$(echo "$FROM_LINE" | sed -E 's/^FROM [^ ]+:([^ ]+).*$/\1/')
-            # Sustituir todas las variables ${VAR} y $VAR en BASE_TAG
+
+            # -------------------------------------------------
+            # Sustituir variables ${VAR} / $VAR
+            # -------------------------------------------------
             for VAR in "${!ARG_VARS[@]}"; do
-              BASE_TAG=$(echo "$BASE_TAG" | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" | sed 's/$'"$VAR"'/'"${ARG_VARS[$VAR]}"'/g')
+              BASE_TAG=$(echo "$BASE_TAG" \
+                | sed "s/\${$VAR}/${ARG_VARS[$VAR]}/g" \
+                | sed "s/\$$VAR/${ARG_VARS[$VAR]}/g")
             done
-            VERSION=$(echo "$BASE_TAG" | tr -d ' ')
+
+            VERSION="$(echo "$BASE_TAG" | tr -d ' ')"
+
+            # Ignorar "latest" como versión fija
             if [ "$VERSION" = "latest" ]; then
               VERSION=""
             fi
 
-            echo "---------------------------------------------"
-            echo "Service:   $SERVICE"
-            echo "Upstream:  $VERSION"
-            echo "Flavor:    ${FLAVOR:-none}"
-            echo "MovingTag: $MOVING"
+            echo "----------------------------------------------------"
+            echo "Service    : $SERVICE"
+            echo "Moving tag : $MOVING"
+            echo "Flavor     : ${FLAVOR:-none}"
+            echo "Upstream   : ${VERSION:-none}"
+            echo "----------------------------------------------------"
 
+            # -------------------------------------------------
+            # Construcción de tags
+            # -------------------------------------------------
             TAG_ARGS=()
             TAG_ARGS+=(-t "$IMAGE_BASE:$MOVING")
 
@@ -113,14 +136,18 @@ jobs:
               fi
             fi
 
+            # -------------------------------------------------
+            # Build
+            # -------------------------------------------------
             docker build \
               "${TAG_ARGS[@]}" \
               "./docker/$SERVICE"
 
-            # Push only the tags built in this run
+            # -------------------------------------------------
+            # Push SOLO los tags construidos
+            # -------------------------------------------------
             for TAG_ARG in "${TAG_ARGS[@]}"; do
-              TAG="${TAG_ARG#-t }"
-              docker push "$TAG"
+              docker push "${TAG_ARG#-t }"
             done
 
           done
