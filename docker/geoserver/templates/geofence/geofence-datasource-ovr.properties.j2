@@ -1,8 +1,8 @@
 geofenceVendorAdapter.databasePlatform=org.hibernate.spatial.dialect.postgis.PostgisDialect
 geofenceDataSource.driverClassName=org.postgresql.Driver
 
-{% if DATABASE_SOCKET %}
-geofenceDataSource.url=jdbc:postgresql://localhost/{{ GEONODE_GEODATABASE }}?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg={{ DATABASE_SOCKET }}
+{% if CLOUDSQL_INSTANCE %}
+geofenceDataSource.url=jdbc:postgresql://google/{{ GEONODE_GEODATABASE }}?socketFactory=com.google.cloud.sql.postgres.SocketFactory&cloudSqlInstance={{ CLOUDSQL_INSTANCE }}
 {% else %}
 geofenceDataSource.url=jdbc:postgresql://{{ DATABASE_HOST }}:{{ DATABASE_PORT }}/{{ GEONODE_GEODATABASE }}
 {% endif %}

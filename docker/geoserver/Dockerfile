@@ -54,9 +54,7 @@ COPY ./templates /templates
 # which can be useful for performance or security in certain deployment scenarios.
 # If you wish to enable Unix socket communication, ensure your configuration and
 # environment variables are set appropriately in GeoServer or its extensions.
-COPY lib/junixsocket/junixsocket-common-2.10.1.jar \
-     lib/junixsocket/junixsocket-native-common-2.10.1.jar \
-     /usr/local/tomcat/webapps/geoserver/WEB-INF/lib/
+COPY lib/gcp/postgres-socket-factory-1.27.0.jar /usr/local/tomcat/webapps/geoserver/WEB-INF/lib/
 
 RUN chmod +x \
         /usr/local/tomcat/tmp/set_geoserver_auth.sh \
