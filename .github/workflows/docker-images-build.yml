@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - xt.gcp
-      - xt.gcp.dev
+      - xt.gcp.qa
 
 env:
   REGISTRY: ghcr.io
