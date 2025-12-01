@@ -49,6 +49,10 @@ COPY set_geoserver_auth.sh \
 
 COPY ./templates /templates
 
+COPY lib/junixsocket/junixsocket-common-2.10.1.jar \
+     lib/junixsocket/junixsocket-native-common-2.10.1.jar \
+     /usr/local/tomcat/webapps/geoserver/WEB-INF/lib/
+
 RUN chmod +x \
         /usr/local/tomcat/tmp/set_geoserver_auth.sh \
         /usr/local/tomcat/tmp/entrypoint.sh
