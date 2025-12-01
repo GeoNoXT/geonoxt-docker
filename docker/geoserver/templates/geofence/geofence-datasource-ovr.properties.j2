@@ -1,6 +1,12 @@
 geofenceVendorAdapter.databasePlatform=org.hibernate.spatial.dialect.postgis.PostgisDialect
 geofenceDataSource.driverClassName=org.postgresql.Driver
+
+{% if DATABASE_SOCKET %}
+geofenceDataSource.url=jdbc:postgresql://localhost/{{ GEONODE_GEODATABASE }}?socketFactory=org.newsclub.net.unix.socketfactory.PostgresqlAFUNIXSocketFactory&socketFactoryArg={{ DATABASE_SOCKET }}
+{% else %}
 geofenceDataSource.url=jdbc:postgresql://{{ DATABASE_HOST }}:{{ DATABASE_PORT }}/{{ GEONODE_GEODATABASE }}
+{% endif %}
+
 geofenceDataSource.username={{ GEONODE_GEODATABASE_USER }}
 geofenceDataSource.password={{ GEONODE_GEODATABASE_PASSWORD }}
 geofenceEntityManagerFactory.jpaPropertyMap[hibernate.default_schema]={{ GEONODE_GEODATABASE_SCHEMA }}
